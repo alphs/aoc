@@ -5,50 +5,40 @@ const input = @embedFile("input.txt");
 
 pub fn main() !void {
     const answer = try solution(input);
-    std.debug.print("sum:{}\n", .{answer});
+    std.debug.print("----------------\nsum:{}\n", .{answer});
 }
 
 fn solution(test_data: []const u8) !usize {
 
-    var iter = std.mem.tokenizeSequence(u8, test_data, "\n");
-
     var sum: usize = 0;
-    while(iter.next()) |line| {
 
-        var first: u8 = undefined;
-        for (line) |char| {
-            switch (char) {
-                '0'...'9' => {
-                    first = char;
-                    break;
-                },
-                else => {},
-            }
+    var opt_first: ?u8 = null;
+    var opt_second: ?u8 = null;
+
+    var it = std.mem.tokenizeScalar(u8, test_data, '\n');
+    for (test_data) |char| {
+        if(char == '\n'){
+            std.debug.print("\n---\nline:{s}\n", .{it.next().?});
         }
-
-        var second: u8 = undefined;
-        var i: usize = line.len;
-        while (i > 0) {
-            i -= 1;
-            switch (line[i]) {
-                '0'...'9' => {
-                    second = line[i];
-                    break;
-                },
-                else => {},
-            }
+        switch (char) {
+            '0'...'9' => {
+                opt_first = opt_first orelse char;
+                opt_second = char;
+                std.debug.print("({any}|{any})", .{opt_first, opt_second});
+            },
+            '\n' => {
+                const num: [2]u8 = .{opt_first.?, opt_second.?};
+                const value = try std.fmt.parseInt(usize, &num, 10);
+                sum += value; 
+                std.debug.print("val:{} num:{any}\n", .{value, num});
+                opt_first = null;
+                opt_second = null;
+            },
+            else => {std.debug.print("'{}'", .{char});},
         }
-
-        const final: [2]u8 = .{first, second};
-        const partial = try std.fmt.parseInt(usize, &final, 10);
-        sum += partial;
-
-        // std.debug.print("---\nline:{s}\n", .{line});
-        // std.debug.print("final:{}, sum:{}\n", .{partial, sum});
     }
-    std.debug.print("sum:{}\n", .{sum});
     return sum;
-}
+ }
 
 test "first example" {
     const example = 
@@ -56,8 +46,10 @@ test "first example" {
         \\pqr3stu8vwx
         \\a1b2c3d4e5f
         \\treb7uchet
+        \\
     ;
     
     const answer = try solution(example);
     try expect(answer == 142);
 }
+
