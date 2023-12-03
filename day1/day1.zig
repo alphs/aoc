@@ -78,6 +78,15 @@ test "first example" {
     try expect(answer == 142);
 }
 
+const FileError = error {
+    Eof,
+};
+
+fn getSafeSlice(data: []const u8, start:usize, end:usize) ![]const u8 {
+    return if (end < data.len) data[start..end] 
+        else FileError.Eof;
+}
+
 fn solution_part2(test_data: []const u8) !usize {
     // const nums_by_length = 
    //     .{"one", "two", "six",
@@ -96,7 +105,8 @@ fn solution_part2(test_data: []const u8) !usize {
     var opt_second: ?u8 = null;
     var it = std.mem.tokenizeScalar(u8, test_data, '\n');
     for (test_data) |_| {
-        const char: u8 = test_data[offset];
+        const char: u8 = if(offset < test_data.len) // check for eof
+            test_data[offset] else '\n';
 
         const opt_window: Window = switch (char) {
             'o' => .{ .initial_size=3}, //"one".len
@@ -120,7 +130,10 @@ fn solution_part2(test_data: []const u8) !usize {
                 const end = start + opt_window.?.initial_size;
 
                 var found = false;
-                const window_slice = test_data[start..end];
+                const window_slice = getSafeSlice(test_data, start, end) catch {
+                    offset += 1;
+                    continue;
+                };
 
                 switch (char) {
                     'o' => {
@@ -142,7 +155,10 @@ fn solution_part2(test_data: []const u8) !usize {
                         } else {
                             // create new window with + step len
                             const advance = end + opt_window.?.next_step.?;
-                                const win_next = test_data[start..advance];
+                            const win_next = getSafeSlice(test_data, start, advance) catch {
+                                offset += 1;
+                                continue;
+                            };
                                 if (std.mem.eql(u8, win_next, "three")){
                                     opt_first = opt_first orelse '3';
                                     opt_second = '3';
@@ -159,7 +175,10 @@ fn solution_part2(test_data: []const u8) !usize {
                             found = true;
                         } else {
                             const advance = end + opt_window.?.next_step.?;
-                                const win_next = test_data[start..advance];
+                            const win_next = getSafeSlice(test_data, start, advance) catch {
+                                offset += 1;
+                                continue;
+                            };
                                 if (std.mem.eql(u8, win_next, "seven")){
                                     opt_first = opt_first orelse '7';
                                     opt_second = '7';
@@ -203,6 +222,9 @@ fn solution_part2(test_data: []const u8) !usize {
                 offset += if (found) 0 else 1;
             },
             '\n' => {
+                if (offset >= test_data.len){
+                    break;
+                }
                 const num: [2]u8 = .{opt_first.?, opt_second.?};
                 const value = try std.fmt.parseInt(usize, &num, 10);
                 sum += value;
@@ -213,10 +235,6 @@ fn solution_part2(test_data: []const u8) !usize {
                 std.debug.print("\nline:{s}", .{it.next().?});
                 std.debug.print("\nval:{} num:{any} sum:{}\n", .{value, num, sum});
             },
-            '?' => {
-                std.debug.print("\n\n\n++++++++++++++++++++THIS IS IT:{}\n\n\n", .{sum});
-                break;
-            },
             else => {
                 std.debug.print("'{}'", .{char});
                 offset += 1;
@@ -226,9 +244,10 @@ fn solution_part2(test_data: []const u8) !usize {
         //std.debug.print("\nend loop: offset:{}\n", .{offset});
     }
 
+    std.debug.print("end sum:{}", .{sum});
+
     return sum;
 }
-
 
 test "second example" {
     const example = 
@@ -239,8 +258,6 @@ test "second example" {
         \\4nineeightseven2
         \\zoneight234
         \\7pqrstsixteen
-        \\?
-        \\
         \\
    ;
 
