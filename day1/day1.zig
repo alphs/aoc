@@ -2,38 +2,7 @@ const std = @import("std");
 const expect = std.testing.expect;
 const input = @embedFile("input.txt");
 
-test "scratch" {
-    const example = 
-        \\two1nine
-        \\eightwothree
-        \\abcone2threexyz
-        \\xtwone3four
-        \\4nineeightseven2
-        \\zoneight234
-        \\7pqrstsixteen
-        \\
-   ;
-    try scratch(example);
-}
-
-fn scratch(data: []const u8) !void {
-
-    const slice = data[data.len - 1];
-    std.debug.print("\nt:{}\n", .{slice});
-}
-
 pub fn main() !void {
-    const example = 
-        \\two1nine
-        \\eightwothree
-        \\abcone2threexyz
-        \\xtwone3four
-        \\4nineeightseven2
-        \\zoneight234
-        \\7pqrstsixteen
-        \\
-   ;
-    std.debug.print("a:'{}'", .{example[example.len - 1]});
     //const answer = try solution_part1(input);
     const answer = try solution_part2(input);
     std.debug.print("----------------\nanswer:{}\n", .{answer});
@@ -87,23 +56,43 @@ fn getSafeSlice(data: []const u8, start:usize, end:usize) ![]const u8 {
         else FileError.Eof;
 }
 
-fn solution_part2(test_data: []const u8) !usize {
-    // const nums_by_length = 
-   //     .{"one", "two", "six",
-   //       "four", "five", "nine",
-   //       "three","seven", "eight"};
+const Window = ?struct {
+    initial_size: u8,
+    next_step: ?u8 = null,
+};
 
-    const Window = ?struct {
-        initial_size: u8,
-        next_step: ?u8 = null,
-    };
+const look_up = std.ComptimeStringMap(u8, .{
+    .{'1', "one"},
+    .{'2', "two"},
+    .{'3', "three"},
+    .{'4', "four"},
+    .{'5', "five"},
+    .{'6', "six"},
+    .{'7', "seven"},
+    .{'8', "eight"},
+    .{'9', "nine"},
+});
+
+fn checkWindow(window: Window, slice: []const u8, char: u8) ?u8 {
+
+    const opt_found_char = if (std.mem.eql(u8, slice, look_up.get(char))) char
+        else null;
+
+    if (opt_found_char) |found_ch| {
+
+        offset += window.initial_size - 1; // -1 to detect overlapping "number words"
+    }
+
+    return opt_found_char 
+}
+
+fn solution_part2(test_data: []const u8) !usize {
 
     var offset: usize = 0;
     var sum: usize = 0;
 
     var opt_first: ?u8 = null;
     var opt_second: ?u8 = null;
-    var it = std.mem.tokenizeScalar(u8, test_data, '\n');
     for (test_data) |_| {
         const char: u8 = if(offset < test_data.len) // check for eof
             test_data[offset] else '\n';
@@ -231,20 +220,12 @@ fn solution_part2(test_data: []const u8) !usize {
                 opt_first = null;
                 opt_second = null;
                 offset += 1;
-
-                std.debug.print("\nline:{s}", .{it.next().?});
-                std.debug.print("\nval:{} num:{any} sum:{}\n", .{value, num, sum});
             },
             else => {
-                std.debug.print("'{}'", .{char});
                 offset += 1;
             },
         }
-
-        //std.debug.print("\nend loop: offset:{}\n", .{offset});
     }
-
-    std.debug.print("end sum:{}", .{sum});
 
     return sum;
 }
